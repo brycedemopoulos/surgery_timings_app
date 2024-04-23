@@ -10,7 +10,7 @@ def app():
     st.image(ORpic, caption='')
 
     # Website title
-    st.title('Real Database')
+    st.title('Deformity Cases of 3 Surgeons')
 
     # Add info button
     st.button('Instructions', help='1. First input desired parameters with the filters on left. \n 2. Choose the axes you wish to graph'
@@ -102,7 +102,7 @@ def app():
 
     st.sidebar.subheader('Case Selection (by procedure)')
 
-    include_posti = st.sidebar.checkbox('Posterior Insrumentation', value=False)
+    include_posti = st.sidebar.checkbox('Posterior Instrumentation', value=False)
     include_lam = st.sidebar.checkbox('Laminectomy', value=False)
     include_tlif = st.sidebar.checkbox('TLIF', value=False)
     include_acdf = st.sidebar.checkbox('ACDF', value=False)
@@ -203,6 +203,10 @@ def app():
 
 #MAKE GRAPHS
 
+    # Calculate Case Duration (hours) by summing up Stage Duration (min) for each case
+    df_selection['Case Duration (hours)'] = df_selection.groupby('Case ID')['Stage Duration (min)'].transform('sum')/60
+
+
     # Check if the filtered DataFrame is empty
     if df_selection.empty:
             st.subheader("There is no data that meets your selections.")
@@ -218,10 +222,10 @@ def app():
 
                 x_axis_val = col1.selectbox('Select the X-axis', options=['Case ID', 'Surgeon', '3rd_rod', 'Procedure Title', 'Stage', 'Stage Duration (min)',
                                                                           'Levels Exposed', 'Levels Instrumented', '# of Pedicle Screws', '# of Pelvic Screws',
-                                                                          '# Levels with Laminectomy', '# Levels with TLIF', '# Levels ACDF'])
+                                                                          '# Levels with Laminectomy', '# Levels with TLIF', '# Levels ACDF', 'Case Duration (hours)'])
                 y_axis_val = col2.selectbox('Select the Y-axis', options=['Case ID', 'Surgeon', '3rd_rod', 'Procedure Title', 'Stage', 'Stage Duration (min)',
                                                                           'Levels Exposed', 'Levels Instrumented', '# of Pedicle Screws', '# of Pelvic Screws',
-                                                                          '# Levels with Laminectomy', '# Levels with TLIF', '# Levels ACDF'])
+                                                                          '# Levels with Laminectomy', '# Levels with TLIF', '# Levels ACDF', 'Case Duration (hours)'])
                 col = col3.selectbox('Color by', options=['Stage', 'Surgeon', 'TLIF', 'Post_Inst', '3rd_rod', '# of Pelvic Screws', 'Lam', 'Durotomy', 'Revision',
                                                           'Tether', 'Navigation', 'Cyst', 'Corp', '# of Pedicle Screws'])
 
@@ -247,8 +251,10 @@ def app():
                 histogram()
 
 
-   # Generate summary table for surgeons
-    surgeon_summary = pd.DataFrame(index=['Total Cases', 'Total Time in OR (min)', 'Total Levels Exposed', 'Total TLIF', 'Average Case Duration (min)'])
+# Generate SUMMARY TABLE for surgeons
+
+    surgeon_summary = pd.DataFrame(index=['Total Cases', 'Total Time in OR (min)', 'Average Case Duration (min)', 'Total Levels Exposed', 'Average Levels Exposed',
+                                          'Total Pedicle Screws', 'Total Pelvic Screws', 'Total TLIF', 'Total ACDF', 'Total Pelvic Fusions'])
 
     # Calculate total TLIF, total time in OR, total levels exposed, total cases, and average case duration for each surgeon
     for surgeon in Surgeon:
@@ -258,46 +264,71 @@ def app():
 
         total_cases = len(unique_cases)
         total_time_in_or = int(surgeon_data['Stage Duration (min)'].sum())
+        average_case_duration = round(surgeon_data['Stage Duration (min)'].sum() / total_cases) if total_cases > 0 else 0
         total_levels_exposed = int(unique_cases['Levels Exposed'].sum())
-        total_tlif = int(surgeon_data[surgeon_data['Stage'] == 'TLIF'].shape[0])
-        average_case_duration = int(surgeon_data['Stage Duration (min)'].sum() / total_cases) if total_cases > 0 else 0
+        average_levels_exposed = round(unique_cases['Levels Exposed'].sum() / total_cases) if total_cases > 0 else 0
+        total_pedicle_screws = int(unique_cases['# of Pedicle Screws'].sum())
+        total_pelvic_screws = int(unique_cases['# of Pelvic Screws'].sum())
+        total_tlif = int(unique_cases['TLIF'].sum())
+        total_acdf = int(unique_cases['ACDF'].sum())                                                           # Sum up the relevant columns to count totals
+        total_pelvic_fusion = int(unique_cases['Pelvic Fusion'].sum())
 
-        surgeon_summary[surgeon] = [total_cases, total_time_in_or, total_levels_exposed, total_tlif, average_case_duration]
+        surgeon_summary[surgeon] = [total_cases, total_time_in_or, average_case_duration, total_levels_exposed, average_levels_exposed, total_pedicle_screws, total_pelvic_screws, total_tlif, total_acdf, total_pelvic_fusion]
 
     # Display summary table
     st.subheader('Surgeon Summary')
     st.table(surgeon_summary)
 
+    
 
 
-    # Define the vertebral levels in the desired order
-    vertebral_levels_ordered = ["C1", "C2", "C3", "C4", "C5", "C6", "C7", "T1", "T2", "T3", "T4", "T5", 
-                                "T6", "T7", "T8", "T9", "T10", "T11", "T12", "L1", "L2", "L3", "L4", "L5", "S1", "S2"]
+#MAKE THE HEATMAP
 
-    # Count the occurrences of each level between UIV and LIV inclusively
-    level_counts = all_data_df.apply(lambda row: vertebral_levels[vertebral_levels.index(row['UIV']):vertebral_levels.index(row['LIV']) + 1], axis=1).explode().value_counts()
+    # Group data by surgeon and count occurrences of each level
+    unique_cases = all_data_df.drop_duplicates(subset=['Case ID'])
 
-    # Create a dataframe for level counts
-    level_counts_df = pd.DataFrame(level_counts, columns=['Count']).reset_index()
-    level_counts_df.columns = ['Level', 'Count']
+    
+    surgeon_level_counts = unique_cases.groupby('Surgeon').apply(
+        lambda group: group.apply(lambda row: vertebral_levels[vertebral_levels.index(row['UIV']):vertebral_levels.index(row['LIV']) + 1], axis=1)
+                            .explode().value_counts()
+    )
+    print(surgeon_level_counts)
+     
+    # Create a dataframe for level counts for each surgeon
+    surgeon_level_counts_df = surgeon_level_counts.reset_index()
+    surgeon_level_counts_df.columns = ['Surgeon', 'Level', 'Count']
+
+    print(surgeon_level_counts_df)
+
 
     # Convert the "Level" column to categorical with the desired order
-    level_counts_df['Level'] = pd.Categorical(level_counts_df['Level'], categories=vertebral_levels_ordered, ordered=True)
+    surgeon_level_counts_df['Level'] = pd.Categorical(surgeon_level_counts_df['Level'], categories=vertebral_levels, ordered=True)
+
+    print(surgeon_level_counts_df)
 
 
-         # Generate heatmap
-    heatmap = px.imshow(pd.crosstab(level_counts_df['Level'], level_counts_df['Level'], values=level_counts_df['Count'], aggfunc='sum'),
-                        labels=dict(x="Level"),
-                        x=vertebral_levels_ordered,
-                        title='Level Operations Frequency',
+       # Calculate the total count for each level across all surgeons
+    total_level_counts = surgeon_level_counts_df.groupby('Level')['Count'].sum().reset_index()
+    total_level_counts['Surgeon'] = 'Total'  # Assign 'Total' as the surgeon for the summary row
+    
+
+    # Append the total level counts to the dataframe
+    surgeon_level_counts_df = pd.concat([surgeon_level_counts_df, total_level_counts], ignore_index=True)
+
+
+    # Generate heatmap
+    heatmap = px.imshow(pd.crosstab(surgeon_level_counts_df['Surgeon'], surgeon_level_counts_df['Level'], 
+                                    values=surgeon_level_counts_df['Count'], aggfunc='sum'),
+                        labels=dict(x="Level", y="Surgeon"),
+                        x=vertebral_levels,
+                        y=surgeon_level_counts_df['Surgeon'].unique(),
                         origin='lower',
                         aspect='auto',
                         color_continuous_scale='viridis')
 
-    heatmap.update_xaxes(side="bottom", categoryorder='array', categoryarray=vertebral_levels_ordered)
-    heatmap.update_yaxes(side="left", categoryorder='array', categoryarray=vertebral_levels_ordered)
-    heatmap.update_layout(yaxis_title="Level", xaxis_title="Level")  # Set axis titles
+    heatmap.update_xaxes(side="bottom", categoryorder='array', categoryarray=vertebral_levels)
+    heatmap.update_layout(xaxis_title="Level")  # Set axis title for the x-axis
 
     # Display heatmap
-    st.subheader('Level Operations Heatmap')
+    st.subheader('Operation Frequency by Vertebra')
     st.plotly_chart(heatmap, use_container_width=True)
