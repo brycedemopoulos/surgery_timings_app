@@ -4,7 +4,7 @@ import plotly.express as px
 
 def app():
     # Website title
-    st.title('Fake Database')
+    st.title('Example Database')
 
     # Add info button
     st.button('Instructions', help='1. First input sample parameters with filters on left. \n 2. If a graph is ideal, then'
