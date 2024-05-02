@@ -34,10 +34,18 @@ def app():
     all_data_df.insert(loc=1, column='Name', value=name)
 
 
+
+# Defining what week each surgery was in
+    all_data_df['Date'] = pd.to_datetime(all_data_df['Date'], format='%m/%d/%Y', errors='coerce')
+    # Find the start date of each week
+    all_data_df['Week'] = all_data_df['Date'] - pd.to_timedelta(all_data_df['Date'].dt.dayofweek, unit='D')
+
+
 #EDITING TIME DATA: Calculate times for each stage (in minutes) and combine duplicate stages
     # Convert the 'Time' column to datetime objects
     all_data_df['Stage Start Time'] = pd.to_datetime(all_data_df['Stage Start Time'], format='%H:%M:%S')
-
+    
+    
     # Sort the dataframe by 'Case ID' and 'Time'
     all_data_df = all_data_df.sort_values(by=['Case ID', 'Stage Start Time'])
 
@@ -62,12 +70,13 @@ def app():
     # Remove the duplicate rows
     all_data_df = all_data_df.drop_duplicates(subset=['Case ID', 'Stage'], keep='last')
 
-
-
+    
 
     # Merge dataframes based on 'Case ID' and 'Case #'
     all_data_df = pd.merge(all_data_df, registry_df, how='left', left_on='Case ID', right_on='Case #')
     all_data_df = pd.merge(all_data_df, comments_df, how='left', left_on='Case ID', right_on='Case#')
+
+
 
 
 #FILTERING THE DATA
@@ -199,6 +208,15 @@ def app():
     )
 
 
+    # Finding levels/week
+    unique_cases = df_selection.drop_duplicates(subset=['Case ID'])
+    levels_per_week = unique_cases.groupby('Week')['Levels Exposed'].sum().reset_index()
+    levels_per_week['Levels/Week'] = levels_per_week['Levels Exposed']
+
+
+    # Merge the 'Levels/Week' column back in'
+    df_selection = pd.merge(df_selection, levels_per_week[['Week', 'Levels/Week']], on='Week', how='left')
+    unique_cases = df_selection.drop_duplicates(subset=['Case ID'])
 
 
 #MAKE GRAPHS
@@ -206,50 +224,49 @@ def app():
     # Calculate Case Duration (hours) by summing up Stage Duration (min) for each case
     df_selection['Case Duration (hours)'] = df_selection.groupby('Case ID')['Stage Duration (min)'].transform('sum')/60
 
-
+                
     # Check if the filtered DataFrame is empty
     if df_selection.empty:
-            st.subheader("There is no data that meets your selections.")
-            
+        st.subheader("There is no data that meets your selections.")
+        
     else:
-            
-            # Include subheading: Create Graph of interest
-            st.subheader('Produce Graph of Interest')
+        # Include subheading: Create Graph of interest
+        st.subheader('Produce Graph of Interest')
 
-            # make an interactive plot to check data
-            def interactive_plot():
-                col1, col2, col3 = st.columns(3)
+        # make an interactive plot to check data
+        def interactive_plot(unique_cases):
+            col1, col2, col3 = st.columns(3)
 
-                x_axis_val = col1.selectbox('Select the X-axis', options=['Case ID', 'Surgeon', '3rd_rod', 'Procedure Title', 'Stage', 'Stage Duration (min)',
-                                                                          'Levels Exposed', 'Levels Instrumented', '# of Pedicle Screws', '# of Pelvic Screws',
-                                                                          '# Levels with Laminectomy', '# Levels with TLIF', '# Levels ACDF', 'Case Duration (hours)'])
-                y_axis_val = col2.selectbox('Select the Y-axis', options=['Case ID', 'Surgeon', '3rd_rod', 'Procedure Title', 'Stage', 'Stage Duration (min)',
-                                                                          'Levels Exposed', 'Levels Instrumented', '# of Pedicle Screws', '# of Pelvic Screws',
-                                                                          '# Levels with Laminectomy', '# Levels with TLIF', '# Levels ACDF', 'Case Duration (hours)'])
-                col = col3.selectbox('Color by', options=['Stage', 'Surgeon', 'TLIF', 'Post_Inst', '3rd_rod', '# of Pelvic Screws', 'Lam', 'Durotomy', 'Revision',
-                                                          'Tether', 'Navigation', 'Cyst', 'Corp', '# of Pedicle Screws'])
-
-                
-                plot = px.scatter(df_selection, x=x_axis_val, y=y_axis_val, color=col, hover_data=['Procedure Title', 'Case ID'], template="simple_white")
-
-                # plot.update_traces(marker=dict(color=col))
-                st.plotly_chart(plot, use_container_width=True)
-
-            def histogram():
-                x_axis_val = st.selectbox('Select the X-axis for Histogram', options=df_selection.columns)
-                hist_plot = px.histogram(df_selection, x=x_axis_val, template="simple_white")
-                st.plotly_chart(hist_plot, use_container_width=True)
+            x_axis_val = col1.selectbox('Select the X-axis', options=['Case ID', 'Surgeon', '3rd_rod', 'Procedure Title', 'Stage', 'Stage Duration (min)',
+                                                                      'Levels Exposed', 'Levels Instrumented', '# of Pedicle Screws', '# of Pelvic Screws',
+                                                                      '# Levels with Laminectomy', '# Levels with TLIF', '# Levels ACDF',
+                                                                      'Case Duration (hours)', 'Levels/Week', 'Week'])
+            y_axis_val = col2.selectbox('Select the Y-axis', options=['Case ID', 'Surgeon', '3rd_rod', 'Procedure Title', 'Stage', 'Stage Duration (min)',
+                                                                      'Levels Exposed', 'Levels Instrumented', '# of Pedicle Screws', '# of Pelvic Screws',
+                                                                      '# Levels with Laminectomy', '# Levels with TLIF', '# Levels ACDF',
+                                                                      'Case Duration (hours)', 'Levels/Week', 'Week'])
+            col = col3.selectbox('Color by', options=['Stage', 'Surgeon', 'TLIF', 'Post_Inst', '3rd_rod', '# of Pelvic Screws', 'Lam', 'Durotomy', 'Revision',
+                                                      'Tether', 'Navigation', 'Cyst', 'Corp', '# of Pedicle Screws'])
 
 
+            plot = px.scatter(df_selection, x=x_axis_val, y=y_axis_val, color=col, hover_data=['Procedure Title', 'Case ID', 'Week'], template="simple_white")
 
-            st.sidebar.title('Navigation')
-            options = st.sidebar.radio('Select what you want to display:', ['Interactive Plots', 'Histogram'])
+            # plot.update_traces(marker=dict(color=col))
+            st.plotly_chart(plot, use_container_width=True)
 
-            if options == 'Interactive Plots':
-                interactive_plot()
-            elif options == 'Histogram':
-                histogram()
 
+        def histogram():
+            x_axis_val = st.selectbox('Select the X-axis for Histogram', options=df_selection.columns)
+            hist_plot = px.histogram(df_selection, x=x_axis_val, template="simple_white")
+            st.plotly_chart(hist_plot, use_container_width=True)
+
+        st.sidebar.title('Navigation')
+        options = st.sidebar.radio('Select what you want to display:', ['Interactive Plots', 'Histogram'])
+
+        if options == 'Interactive Plots':
+            interactive_plot(unique_cases)
+        elif options == 'Histogram':
+            histogram()
 
 # Generate SUMMARY TABLE for surgeons
 
@@ -292,20 +309,13 @@ def app():
         lambda group: group.apply(lambda row: vertebral_levels[vertebral_levels.index(row['UIV']):vertebral_levels.index(row['LIV']) + 1], axis=1)
                             .explode().value_counts()
     )
-    print(surgeon_level_counts)
-     
+    
     # Create a dataframe for level counts for each surgeon
     surgeon_level_counts_df = surgeon_level_counts.reset_index()
     surgeon_level_counts_df.columns = ['Surgeon', 'Level', 'Count']
 
-    print(surgeon_level_counts_df)
-
-
     # Convert the "Level" column to categorical with the desired order
     surgeon_level_counts_df['Level'] = pd.Categorical(surgeon_level_counts_df['Level'], categories=vertebral_levels, ordered=True)
-
-    print(surgeon_level_counts_df)
-
 
        # Calculate the total count for each level across all surgeons
     total_level_counts = surgeon_level_counts_df.groupby('Level')['Count'].sum().reset_index()
