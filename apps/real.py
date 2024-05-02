@@ -216,15 +216,20 @@ def app():
 
     # Merge the 'Levels/Week' column back in'
     df_selection = pd.merge(df_selection, levels_per_week[['Week', 'Levels/Week']], on='Week', how='left')
-    unique_cases = df_selection.drop_duplicates(subset=['Case ID'])
+
 
 
 #MAKE GRAPHS
 
     # Calculate Case Duration (hours) by summing up Stage Duration (min) for each case
     df_selection['Case Duration (hours)'] = df_selection.groupby('Case ID')['Stage Duration (min)'].transform('sum')/60
+    unique_cases = df_selection.drop_duplicates(subset=['Case ID'])
 
-                
+    
+    df_selection['Total OR Time (hours)'] = df_selection.groupby(['Surgeon', 'Week'])['Stage Duration (min)'].transform('sum')/60
+
+
+    
     # Check if the filtered DataFrame is empty
     if df_selection.empty:
         st.subheader("There is no data that meets your selections.")
@@ -240,11 +245,11 @@ def app():
             x_axis_val = col1.selectbox('Select the X-axis', options=['Case ID', 'Surgeon', '3rd_rod', 'Procedure Title', 'Stage', 'Stage Duration (min)',
                                                                       'Levels Exposed', 'Levels Instrumented', '# of Pedicle Screws', '# of Pelvic Screws',
                                                                       '# Levels with Laminectomy', '# Levels with TLIF', '# Levels ACDF',
-                                                                      'Case Duration (hours)', 'Levels/Week', 'Week'])
+                                                                      'Case Duration (hours)', 'Levels/Week', 'Week', 'Total OR Time (hours)'])
             y_axis_val = col2.selectbox('Select the Y-axis', options=['Case ID', 'Surgeon', '3rd_rod', 'Procedure Title', 'Stage', 'Stage Duration (min)',
                                                                       'Levels Exposed', 'Levels Instrumented', '# of Pedicle Screws', '# of Pelvic Screws',
                                                                       '# Levels with Laminectomy', '# Levels with TLIF', '# Levels ACDF',
-                                                                      'Case Duration (hours)', 'Levels/Week', 'Week'])
+                                                                      'Case Duration (hours)', 'Levels/Week', 'Week', 'Total OR Time (hours)'])
             col = col3.selectbox('Color by', options=['Stage', 'Surgeon', 'TLIF', 'Post_Inst', '3rd_rod', '# of Pelvic Screws', 'Lam', 'Durotomy', 'Revision',
                                                       'Tether', 'Navigation', 'Cyst', 'Corp', '# of Pedicle Screws'])
 
