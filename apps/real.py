@@ -117,16 +117,16 @@ def app():
      # Apply filters based on user selection
      
     if include_posti:
-        all_data_df = all_data_df[all_data_df['Fusion'] == 1]
+        all_data_df = all_data_df[all_data_df['Fusion'] == 'Yes']
 
     if include_lam:
-        all_data_df = all_data_df[all_data_df['Laminectomy'] == 1]
+        all_data_df = all_data_df[all_data_df['Laminectomy'] == 'Yes']
 
     if include_tlif:
-        all_data_df = all_data_df[all_data_df['TLIF'] == 1]
+        all_data_df = all_data_df[all_data_df['TLIF'] == 'Yes']
         
     if include_acdf:
-        all_data_df = all_data_df[all_data_df['ACDF'] == 1]
+        all_data_df = all_data_df[all_data_df['ACDF'] == 'Yes']
 
 
 
