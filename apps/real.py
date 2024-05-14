@@ -17,15 +17,12 @@ def app():
                                     ' \n 3. Select any variable to categorize by color.')
 
     # Load data from XLSX
-    all_data_df = pd.read_excel('All Time Data328.xlsx', sheet_name='All Time Data', engine='openpyxl')
-    registry_df = pd.read_excel('All Time Data328.xlsx', sheet_name='Registry', engine='openpyxl')
-    comments_df = pd.read_excel('All Time Data328.xlsx', sheet_name='Case Notes', engine='openpyxl')
+    all_data_df = pd.read_excel('All Time Data514.xlsx', sheet_name='All Time Data', engine='openpyxl')
+    registry_df = pd.read_excel('All Time Data514.xlsx', sheet_name='Registry', engine='openpyxl')
+    comments_df = pd.read_excel('All Time Data514.xlsx', sheet_name='Case Notes', engine='openpyxl')
 
 
-    # Filter to include only rows where "Entry Type" is "Stage"
-    all_data_df = all_data_df[all_data_df['Entry Type'] == 'Stage']
 
-    # removed column that doesn't work (THIS SHOULD BE RESOLVED)
 
     # Add unique identifier for each sample, by fusing case number, stage name, and start time
     all_data_df['Name'] = all_data_df['Case ID'].astype(str) + '/' + all_data_df['Stage'].astype(str)  + '/' + all_data_df['Stage Start Time'].astype(str)
@@ -43,7 +40,7 @@ def app():
 
 #EDITING TIME DATA: Calculate times for each stage (in minutes) and combine duplicate stages
     # Convert the 'Time' column to datetime objects
-    all_data_df['Stage Start Time'] = pd.to_datetime(all_data_df['Stage Start Time'], format='%H:%M:%S')
+    all_data_df['Stage Start Time'] = pd.to_datetime(all_data_df['Stage Start Time'], format='%H:%M')
     
     
     # Sort the dataframe by 'Case ID' and 'Time'
@@ -72,8 +69,8 @@ def app():
 
     
 
-    # Merge dataframes based on 'Case ID' and 'Case #'
-    all_data_df = pd.merge(all_data_df, registry_df, how='left', left_on='Case ID', right_on='Case #')
+    # Merge dataframes based on 'Case ID' and 'ST ID'
+    all_data_df = pd.merge(all_data_df, registry_df, how='left', left_on='Case ID', right_on='ST ID')
     all_data_df = pd.merge(all_data_df, comments_df, how='left', left_on='Case ID', right_on='Case#')
 
 
@@ -84,29 +81,29 @@ def app():
     st.sidebar.markdown("# Filters")
 
 
-    st.sidebar.subheader('Case Selection (by level)')
+  #  st.sidebar.subheader('Case Selection (by level)')
 
 
   #1  Filter options for Cer/Thor/Lum
-    checkbox_col1, checkbox_col2, checkbox_col3 = st.sidebar.columns(3)
-
-    include_cervical = checkbox_col1.checkbox('Cervical', value=False)
-    include_thoracic = checkbox_col2.checkbox('Thoracic', value=False)
-    include_lumbar = checkbox_col3.checkbox('Lumbar', value=False)
+   # checkbox_col1, checkbox_col2, checkbox_col3 = st.sidebar.columns(3)
+#
+ #  include_cervical = checkbox_col1.checkbox('Cervical', value=False)
+ #  include_thoracic = checkbox_col2.checkbox('Thoracic', value=False)
+ #  include_lumbar = checkbox_col3.checkbox('Lumbar', value=False)
 
 
     # Apply filters based on user selection
-    if include_cervical:
-        all_data_df = all_data_df[all_data_df['Cer'] == 1]
+  #  if include_cervical:
+  #      all_data_df = all_data_df[all_data_df['Cer'] == 1]
 
-    if include_thoracic:
-        all_data_df = all_data_df[all_data_df['Thor'] == 1]
+#    if include_thoracic:
+  #      all_data_df = all_data_df[all_data_df['Thor'] == 1]
 
-    if include_lumbar:
-        all_data_df = all_data_df[all_data_df['Lum'] == 1]
+ #   if include_lumbar:
+ #       all_data_df = all_data_df[all_data_df['Lum'] == 1]
 
 
-  #2  Filter options for Post Inst./Lam/TLIF/ACDF/Corp/Cyst
+  #2  Filter options for Post Inst./Laminectomy/TLIF/ACDF
 
 
     st.sidebar.subheader('Case Selection (by procedure)')
@@ -115,18 +112,15 @@ def app():
     include_lam = st.sidebar.checkbox('Laminectomy', value=False)
     include_tlif = st.sidebar.checkbox('TLIF', value=False)
     include_acdf = st.sidebar.checkbox('ACDF', value=False)
-    include_corp = st.sidebar.checkbox('Corpectomy', value=False)
-    include_disc = st.sidebar.checkbox('Discectomy', value=False)
-    include_cyst = st.sidebar.checkbox('Cyst', value=False)
 
 
      # Apply filters based on user selection
      
     if include_posti:
-        all_data_df = all_data_df[all_data_df['Post_Inst'] == 1]
+        all_data_df = all_data_df[all_data_df['Fusion'] == 1]
 
     if include_lam:
-        all_data_df = all_data_df[all_data_df['Lam'] == 1]
+        all_data_df = all_data_df[all_data_df['Laminectomy'] == 1]
 
     if include_tlif:
         all_data_df = all_data_df[all_data_df['TLIF'] == 1]
@@ -134,14 +128,6 @@ def app():
     if include_acdf:
         all_data_df = all_data_df[all_data_df['ACDF'] == 1]
 
-    if include_corp:
-        all_data_df = all_data_df[all_data_df['Corp'] == 1]
-
-    if include_disc:
-        all_data_df = all_data_df[all_data_df['Disc_corp'] == 1]
-        
-    if include_cyst:
-        all_data_df = all_data_df[all_data_df['Cyst'] == 1]
 
 
 
@@ -242,19 +228,19 @@ def app():
         def interactive_plot(unique_cases):
             col1, col2, col3 = st.columns(3)
 
-            x_axis_val = col1.selectbox('Select the X-axis', options=['Case ID', 'Surgeon', '3rd_rod', 'Procedure Title', 'Stage', 'Stage Duration (min)',
-                                                                      'Levels Exposed', 'Levels Instrumented', '# of Pedicle Screws', '# of Pelvic Screws',
-                                                                      '# Levels with Laminectomy', '# Levels with TLIF', '# Levels ACDF',
+            x_axis_val = col1.selectbox('Select the X-axis', options=['Case ID', 'Surgeon', 'Fusion_Thirdrod', 'Case Name', 'Stage', 'Stage Duration (min)',
+                                                                      'Levels Exposed', 'Fusion_levels', 'Fusion_Pediclescrews', 'Fusion_Pelvicscrews',
+                                                                      'Laminectomy_levels', 'TLIF_levels', 'ACDF_levels',
                                                                       'Case Duration (hours)', 'Levels/Week', 'Week', 'Total OR Time (hours)'])
-            y_axis_val = col2.selectbox('Select the Y-axis', options=['Case ID', 'Surgeon', '3rd_rod', 'Procedure Title', 'Stage', 'Stage Duration (min)',
-                                                                      'Levels Exposed', 'Levels Instrumented', '# of Pedicle Screws', '# of Pelvic Screws',
-                                                                      '# Levels with Laminectomy', '# Levels with TLIF', '# Levels ACDF',
+            y_axis_val = col2.selectbox('Select the Y-axis', options=['Case ID', 'Surgeon', 'Fusion_Thirdrod', 'Case Name', 'Stage', 'Stage Duration (min)',
+                                                                      'Levels Exposed', 'Fusion_levels', 'Fusion_Pediclescrews', 'Fusion_Pelvicscrews',
+                                                                      'Laminectomy_levels', 'TLIF_levels', 'ACDF_levels',
                                                                       'Case Duration (hours)', 'Levels/Week', 'Week', 'Total OR Time (hours)'])
-            col = col3.selectbox('Color by', options=['Stage', 'Surgeon', 'TLIF', 'Post_Inst', '3rd_rod', '# of Pelvic Screws', 'Lam', 'Durotomy', 'Revision',
-                                                      'Tether', 'Navigation', 'Cyst', 'Corp', '# of Pedicle Screws'])
+            col = col3.selectbox('Color by', options=['Stage', 'Surgeon', 'TLIF', 'Fusion', 'Fusion_Thirdrod', 'Fusion_Pelvicscrews', 'Laminectomy', 'Durotomy', 'Revision',
+                                                      'Fusion_Tether', 'Fusion_Nav', 'Fusion_Pediclescrews'])
 
 
-            plot = px.scatter(df_selection, x=x_axis_val, y=y_axis_val, color=col, hover_data=['Procedure Title', 'Case ID', 'Week'], template="simple_white")
+            plot = px.scatter(df_selection, x=x_axis_val, y=y_axis_val, color=col, hover_data=['Case Name', 'Case ID', 'Week'], template="simple_white")
 
             # plot.update_traces(marker=dict(color=col))
             st.plotly_chart(plot, use_container_width=True)
@@ -276,7 +262,7 @@ def app():
 # Generate SUMMARY TABLE for surgeons
 
     surgeon_summary = pd.DataFrame(index=['Total Cases', 'Total Time in OR (min)', 'Average Case Duration (min)', 'Total Levels Exposed', 'Average Levels Exposed',
-                                          'Total Pedicle Screws', 'Total Pelvic Screws', 'Total TLIF', 'Total ACDF', 'Total Pelvic Fusions'])
+                                          'Total Pedicle Screws', 'Total Pelvic Screws', 'Total TLIF', 'Total ACDF', 'Total Fusion_Pelviss'])
 
     # Calculate total TLIF, total time in OR, total levels exposed, total cases, and average case duration for each surgeon
     for surgeon in Surgeon:
@@ -289,11 +275,11 @@ def app():
         average_case_duration = round(surgeon_data['Stage Duration (min)'].sum() / total_cases) if total_cases > 0 else 0
         total_levels_exposed = int(unique_cases['Levels Exposed'].sum())
         average_levels_exposed = round(unique_cases['Levels Exposed'].sum() / total_cases) if total_cases > 0 else 0
-        total_pedicle_screws = int(unique_cases['# of Pedicle Screws'].sum())
-        total_pelvic_screws = int(unique_cases['# of Pelvic Screws'].sum())
-        total_tlif = int(unique_cases['TLIF'].sum())
-        total_acdf = int(unique_cases['ACDF'].sum())                                                           # Sum up the relevant columns to count totals
-        total_pelvic_fusion = int(unique_cases['Pelvic Fusion'].sum())
+        total_pedicle_screws = int(unique_cases['Fusion_Pediclescrews'].sum())
+        total_pelvic_screws = int(unique_cases['Fusion_Pelvicscrews'].sum())
+        total_tlif = (unique_cases['TLIF'] == 'Yes').sum()
+        total_acdf = (unique_cases['ACDF'] == 'Yes').sum()                                                           # Sum up the relevant columns to count totals
+        total_pelvic_fusion = (unique_cases['Fusion_Pelvis'] == 'Yes').sum()
 
         surgeon_summary[surgeon] = [total_cases, total_time_in_or, average_case_duration, total_levels_exposed, average_levels_exposed, total_pedicle_screws, total_pelvic_screws, total_tlif, total_acdf, total_pelvic_fusion]
 
