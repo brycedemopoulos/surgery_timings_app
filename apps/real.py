@@ -103,15 +103,18 @@ def app():
  #       all_data_df = all_data_df[all_data_df['Lum'] == 1]
 
 
-  #2  Filter options for Post Inst./Laminectomy/TLIF/ACDF
+  #2  Filter options for Post Inst./TLIF/PSO/Laminectomy/ACDF
 
 
     st.sidebar.subheader('Case Selection (by procedure)')
 
     include_posti = st.sidebar.checkbox('Posterior Instrumentation', value=False)
-    include_lam = st.sidebar.checkbox('Laminectomy', value=False)
     include_tlif = st.sidebar.checkbox('TLIF', value=False)
+    include_pso = st.sidebar.checkbox('PSO', value=False)
+    include_lam = st.sidebar.checkbox('Laminectomy', value=False)
     include_acdf = st.sidebar.checkbox('ACDF', value=False)
+    include_pelvicfusion = st.sidebar.checkbox('Pelvic Fusion', value=False)
+
 
 
      # Apply filters based on user selection
@@ -119,16 +122,20 @@ def app():
     if include_posti:
         all_data_df = all_data_df[all_data_df['Fusion'] == 'Yes']
 
+    if include_tlif:
+        all_data_df = all_data_df[all_data_df['TLIF'] == 'Yes']
+
+    if include_pso:
+        all_data_df = all_data_df[all_data_df['PSO'] == 'Yes']
+        
     if include_lam:
         all_data_df = all_data_df[all_data_df['Laminectomy'] == 'Yes']
 
-    if include_tlif:
-        all_data_df = all_data_df[all_data_df['TLIF'] == 'Yes']
-        
     if include_acdf:
         all_data_df = all_data_df[all_data_df['ACDF'] == 'Yes']
 
-
+    if include_pelvicfusion:
+        all_data_df = all_data_df[all_data_df['Fusion_Pelvis'] == 'Yes']
 
 
   #3 MAKE A SLIDER FOR VERTEBRAL LEVELS
@@ -262,7 +269,7 @@ def app():
 # Generate SUMMARY TABLE for surgeons
 
     surgeon_summary = pd.DataFrame(index=['Total Cases', 'Total Time in OR (min)', 'Average Case Duration (min)', 'Total Levels Exposed', 'Average Levels Exposed',
-                                          'Total Pedicle Screws', 'Total Pelvic Screws', 'Total TLIF', 'Total ACDF', 'Total Fusion_Pelviss'])
+                                          'Total Pedicle Screws', 'Total Pelvic Screws', 'Cases with TLIF', 'Total TLIFs', 'Total ACDF', 'Total Fusion_Pelvis'])
 
     # Calculate total TLIF, total time in OR, total levels exposed, total cases, and average case duration for each surgeon
     for surgeon in Surgeon:
@@ -277,11 +284,13 @@ def app():
         average_levels_exposed = round(unique_cases['Levels Exposed'].sum() / total_cases) if total_cases > 0 else 0
         total_pedicle_screws = int(unique_cases['Fusion_Pediclescrews'].sum())
         total_pelvic_screws = int(unique_cases['Fusion_Pelvicscrews'].sum())
-        total_tlif = (unique_cases['TLIF'] == 'Yes').sum()
+        cases_with_tlif = (unique_cases['TLIF'] == 'Yes').sum()
+        total_tlifs = (unique_cases['TLIF_levels'].sum()
         total_acdf = (unique_cases['ACDF'] == 'Yes').sum()                                                           # Sum up the relevant columns to count totals
         total_pelvic_fusion = (unique_cases['Fusion_Pelvis'] == 'Yes').sum()
 
-        surgeon_summary[surgeon] = [total_cases, total_time_in_or, average_case_duration, total_levels_exposed, average_levels_exposed, total_pedicle_screws, total_pelvic_screws, total_tlif, total_acdf, total_pelvic_fusion]
+        surgeon_summary[surgeon] = [total_cases, total_time_in_or, average_case_duration, total_levels_exposed, average_levels_exposed, total_pedicle_screws, total_pelvic_screws,
+                                    cases_with_tlif, total_tlifs, total_acdf, total_pelvic_fusion]
 
     # Display summary table
     st.subheader('Surgeon Summary')
