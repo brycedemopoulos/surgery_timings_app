@@ -285,7 +285,7 @@ def app():
         total_pedicle_screws = int(unique_cases['Fusion_Pediclescrews'].sum())
         total_pelvic_screws = int(unique_cases['Fusion_Pelvicscrews'].sum())
         cases_with_tlif = (unique_cases['TLIF'] == 'Yes').sum()
-        total_tlifs = (unique_cases['TLIF_levels'].sum()
+        total_tlifs = (unique_cases['TLIF_levels'].sum())
         total_acdf = (unique_cases['ACDF'] == 'Yes').sum()                                                           # Sum up the relevant columns to count totals
         total_pelvic_fusion = (unique_cases['Fusion_Pelvis'] == 'Yes').sum()
 
