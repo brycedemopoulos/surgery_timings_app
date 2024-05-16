@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
+
 def app():
 
     #include a picture of an OR
@@ -19,10 +20,11 @@ def app():
     # Load data from XLSX
     all_data_df = pd.read_excel('All Time Data514.xlsx', sheet_name='All Time Data', engine='openpyxl')
     registry_df = pd.read_excel('All Time Data514.xlsx', sheet_name='Registry', engine='openpyxl')
-    comments_df = pd.read_excel('All Time Data514.xlsx', sheet_name='Case Notes', engine='openpyxl')
 
 
-
+    # Merge dataframes based on 'Case ID' and 'ST ID'
+    all_data_df = pd.merge(all_data_df, registry_df, how='left', left_on='Case ID', right_on='ST ID')
+    
 
     # Add unique identifier for each sample, by fusing case number, stage name, and start time
     all_data_df['Name'] = all_data_df['Case ID'].astype(str) + '/' + all_data_df['Stage'].astype(str)  + '/' + all_data_df['Stage Start Time'].astype(str)
@@ -69,9 +71,7 @@ def app():
 
     
 
-    # Merge dataframes based on 'Case ID' and 'ST ID'
-    all_data_df = pd.merge(all_data_df, registry_df, how='left', left_on='Case ID', right_on='ST ID')
-    all_data_df = pd.merge(all_data_df, comments_df, how='left', left_on='Case ID', right_on='Case#')
+
 
 
 
@@ -84,61 +84,93 @@ def app():
   #  st.sidebar.subheader('Case Selection (by level)')
 
 
-  #1  Filter options for Cer/Thor/Lum
-   # checkbox_col1, checkbox_col2, checkbox_col3 = st.sidebar.columns(3)
-#
- #  include_cervical = checkbox_col1.checkbox('Cervical', value=False)
- #  include_thoracic = checkbox_col2.checkbox('Thoracic', value=False)
- #  include_lumbar = checkbox_col3.checkbox('Lumbar', value=False)
-
-
-    # Apply filters based on user selection
-  #  if include_cervical:
-  #      all_data_df = all_data_df[all_data_df['Cer'] == 1]
-
-#    if include_thoracic:
-  #      all_data_df = all_data_df[all_data_df['Thor'] == 1]
-
- #   if include_lumbar:
- #       all_data_df = all_data_df[all_data_df['Lum'] == 1]
+##  #1  Filter options for Cer/Thor/Lum
+##    checkbox_col1, checkbox_col2, checkbox_col3 = st.sidebar.columns(3)
+##
+##    include_cervical = checkbox_col1.checkbox('Cervical', value=False)
+##    include_thoracic = checkbox_col2.checkbox('Thoracic', value=False)
+##    include_lumbar = checkbox_col3.checkbox('Lumbar', value=False)
+##
+##
+##    # Apply filters based on user selection
+##    if include_cervical:
+##        all_data_df = all_data_df[all_data_df['Cer'] == 1]
+##
+##    if include_thoracic:
+##        all_data_df = all_data_df[all_data_df['Thor'] == 1]
+##
+##    if include_lumbar:
+##        all_data_df = all_data_df[all_data_df['Lum'] == 1]
 
 
   #2  Filter options for Post Inst./TLIF/PSO/Laminectomy/ACDF
 
 
+
+
+
     st.sidebar.subheader('Case Selection (by procedure)')
 
-    include_posti = st.sidebar.checkbox('Posterior Instrumentation', value=False)
-    include_tlif = st.sidebar.checkbox('TLIF', value=False)
-    include_pso = st.sidebar.checkbox('PSO', value=False)
-    include_lam = st.sidebar.checkbox('Laminectomy', value=False)
-    include_acdf = st.sidebar.checkbox('ACDF', value=False)
-    include_pelvicfusion = st.sidebar.checkbox('Pelvic Fusion', value=False)
+
+    checkbox_col1, checkbox_col2 = st.sidebar.columns(2)
+
+    include_posti = checkbox_col1.checkbox('Fusion', value=False)
+    exclude_posti = checkbox_col2.checkbox('No Fusion', value=False)
+    include_tlif = checkbox_col1.checkbox('TLIF', value=False)
+    exclude_tlif = checkbox_col2.checkbox('No TLIF', value=False)
+    include_pso = checkbox_col1.checkbox('PSO', value=False)
+    exclude_pso = checkbox_col2.checkbox('No PSO', value=False)
+    include_lam = checkbox_col1.checkbox('Laminectomy', value=False)
+    exclude_lam = checkbox_col2.checkbox('No Lam', value=False)
+    include_acdf = checkbox_col1.checkbox('ACDF', value=False)
+    exclude_acdf = checkbox_col2.checkbox('No ACDF', value=False)
+    include_pelvicfusion = checkbox_col1.checkbox('Pelvic Fusion', value=False)
+    exclude_pelvicfusion = checkbox_col2.checkbox('No Pel Fusion', value=False)
 
 
 
-     # Apply filters based on user selection
-     
+    # Apply filters based on user selection
     if include_posti:
         all_data_df = all_data_df[all_data_df['Fusion'] == 'Yes']
+
+    if exclude_posti:
+        all_data_df = all_data_df[all_data_df['Fusion'] == 'No']
 
     if include_tlif:
         all_data_df = all_data_df[all_data_df['TLIF'] == 'Yes']
 
+    if exclude_tlif:
+        all_data_df = all_data_df[all_data_df['TLIF'] == 'No']
+
     if include_pso:
         all_data_df = all_data_df[all_data_df['PSO'] == 'Yes']
+
+    if exclude_pso:
+        all_data_df = all_data_df[all_data_df['PSO'] == 'No']
         
     if include_lam:
         all_data_df = all_data_df[all_data_df['Laminectomy'] == 'Yes']
 
+    if exclude_lam:
+        all_data_df = all_data_df[all_data_df['Laminectomy'] == 'No']
+
     if include_acdf:
         all_data_df = all_data_df[all_data_df['ACDF'] == 'Yes']
+
+    if exclude_acdf:
+        all_data_df = all_data_df[all_data_df['ACDF'] == 'No']
 
     if include_pelvicfusion:
         all_data_df = all_data_df[all_data_df['Fusion_Pelvis'] == 'Yes']
 
+    if exclude_pelvicfusion:
+        all_data_df = all_data_df[all_data_df['Fusion_Pelvis'] == 'Yes']
+
 
   #3 MAKE A SLIDER FOR VERTEBRAL LEVELS
+
+    st.sidebar.subheader('Which levels?')
+
 
     # Define the vertebral levels
     vertebral_levels = ["C1", "C2", "C3", "C4", "C5", "C6", "C7", "T1", "T2", "T3", "T4", "T5", 
@@ -180,7 +212,7 @@ def app():
     
         
 
-    Stage = st.sidebar.multiselect('Select Stage: (Required)',
+    Stage = st.sidebar.multiselect('Select Stage: ',
                                   options=all_data_df['Stage'].unique(),
                                   )
     if len(Stage) == 0:
@@ -247,7 +279,11 @@ def app():
                                                       'Fusion_Tether', 'Fusion_Nav', 'Fusion_Pediclescrews'])
 
 
-            plot = px.scatter(df_selection, x=x_axis_val, y=y_axis_val, color=col, hover_data=['Case Name', 'Case ID', 'Week'], template="simple_white")
+            df_selection['Comments'] = df_selection['Comments'].apply(lambda x: f"<span style='font-size: 10px;'>{x}</span>")
+            df_selection['Date'] = pd.to_datetime(df_selection['Date']).dt.strftime('%m/%d/%Y')
+
+            plot = px.scatter(df_selection, x=x_axis_val, y=y_axis_val, color=col, hover_data=['Case Name', 'Case ID', 'Date', 'Comments'], template="simple_white")
+
 
             # plot.update_traces(marker=dict(color=col))
             st.plotly_chart(plot, use_container_width=True)
@@ -269,7 +305,7 @@ def app():
 # Generate SUMMARY TABLE for surgeons
 
     surgeon_summary = pd.DataFrame(index=['Total Cases', 'Total Time in OR (min)', 'Average Case Duration (min)', 'Total Levels Exposed', 'Average Levels Exposed',
-                                          'Total Pedicle Screws', 'Total Pelvic Screws', 'Cases with TLIF', 'Total TLIFs', 'Total ACDF', 'Total Fusion_Pelvis'])
+                                          'Total Pedicle Screws', 'Total Pelvic Screws', 'Cases with TLIF', 'Total TLIFs', 'Time/TLIF (min)', 'Total ACDF', 'Total Fusion_Pelvis'])
 
     # Calculate total TLIF, total time in OR, total levels exposed, total cases, and average case duration for each surgeon
     for surgeon in Surgeon:
@@ -286,11 +322,12 @@ def app():
         total_pelvic_screws = int(unique_cases['Fusion_Pelvicscrews'].sum())
         cases_with_tlif = (unique_cases['TLIF'] == 'Yes').sum()
         total_tlifs = int(unique_cases['TLIF_levels'].sum())
+        average_tlif_duration = int(surgeon_data[surgeon_data['Stage'] == 'TLIF']['Stage Duration (min)'].sum() / total_tlifs) if total_tlifs > 0 else 0
         total_acdf = (unique_cases['ACDF'] == 'Yes').sum()                                                           # Sum up the relevant columns to count totals
         total_pelvic_fusion = (unique_cases['Fusion_Pelvis'] == 'Yes').sum()
 
         surgeon_summary[surgeon] = [total_cases, total_time_in_or, average_case_duration, total_levels_exposed, average_levels_exposed, total_pedicle_screws, total_pelvic_screws,
-                                    cases_with_tlif, total_tlifs, total_acdf, total_pelvic_fusion]
+                                    cases_with_tlif, total_tlifs, average_tlif_duration, total_acdf, total_pelvic_fusion]
 
     # Display summary table
     st.subheader('Surgeon Summary')
@@ -317,13 +354,13 @@ def app():
     # Convert the "Level" column to categorical with the desired order
     surgeon_level_counts_df['Level'] = pd.Categorical(surgeon_level_counts_df['Level'], categories=vertebral_levels, ordered=True)
 
-       # Calculate the total count for each level across all surgeons
-    total_level_counts = surgeon_level_counts_df.groupby('Level')['Count'].sum().reset_index()
-    total_level_counts['Surgeon'] = 'Total'  # Assign 'Total' as the surgeon for the summary row
+    # Calculate the total count for each level across all surgeons
+  #  total_level_counts = surgeon_level_counts_df.groupby('Level')['Count'].sum().reset_index()
+  #  total_level_counts['Surgeon'] = 'Total'  # Assign 'Total' as the surgeon for the summary row
     
 
     # Append the total level counts to the dataframe
-    surgeon_level_counts_df = pd.concat([surgeon_level_counts_df, total_level_counts], ignore_index=True)
+  #  surgeon_level_counts_df = pd.concat([surgeon_level_counts_df, total_level_counts], ignore_index=True)
 
 
     # Generate heatmap
