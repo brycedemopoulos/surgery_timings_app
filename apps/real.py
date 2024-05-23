@@ -216,7 +216,7 @@ def app():
                                   options=all_data_df['Case ID'].unique(),
                                   )
     if len(Case) == 0:
-        Case = list(all_data_df['Case'].unique())
+        Case = list(all_data_df['Case ID'].unique())
         
 
 
@@ -236,8 +236,10 @@ def app():
 
 #this part is not needed right now
     # Make dataframe of selected data
-    df_selection = all_data_df.query(
-        f"`Stage` == {Stage} & `Surgeon` == {Surgeon} & 'Case' == {Case}"
+        df_selection = all_data_df.query(
+        f"`Stage` in {Stage} and "
+        f"`Surgeon` in {Surgeon} and "
+        f"`Case ID` in {Case}"
     )
 
 
@@ -347,42 +349,67 @@ def app():
 #MAKE THE HEATMAP
 
     # Group data by surgeon and count occurrences of each level
-    unique_cases = all_data_df.drop_duplicates(subset=['Case ID'])
+    unique_cases = df_selection.drop_duplicates(subset=['Case ID'])
 
-    
-    surgeon_level_counts = unique_cases.groupby('Surgeon').apply(
-        lambda group: group.apply(lambda row: vertebral_levels[vertebral_levels.index(row['UIV']):vertebral_levels.index(row['LIV']) + 1], axis=1)
-                            .explode().value_counts()
-    )
-    
-    # Create a dataframe for level counts for each surgeon
-    surgeon_level_counts_df = surgeon_level_counts.reset_index()
-    surgeon_level_counts_df.columns = ['Surgeon', 'Level', 'Count']
+    if len(unique_cases) > 1:
 
-    # Convert the "Level" column to categorical with the desired order
-    surgeon_level_counts_df['Level'] = pd.Categorical(surgeon_level_counts_df['Level'], categories=vertebral_levels, ordered=True)
+        surgeon_level_counts = unique_cases.groupby('Surgeon').apply(
+            lambda group: group.apply(lambda row: vertebral_levels[vertebral_levels.index(row['UIV']):vertebral_levels.index(row['LIV']) + 1], axis=1)
+                                .explode().value_counts()
+        )
+        
+        # Create a dataframe for level counts for each surgeon
+        surgeon_level_counts_df = surgeon_level_counts.reset_index()
+        surgeon_level_counts_df.columns = ['Surgeon', 'Level', 'Count']
 
-    # Calculate the total count for each level across all surgeons
-  #  total_level_counts = surgeon_level_counts_df.groupby('Level')['Count'].sum().reset_index()
-  #  total_level_counts['Surgeon'] = 'Total'  # Assign 'Total' as the surgeon for the summary row
-    
+        # Convert the "Level" column to categorical with the desired order
+        surgeon_level_counts_df['Level'] = pd.Categorical(surgeon_level_counts_df['Level'], categories=vertebral_levels, ordered=True)
 
-    # Append the total level counts to the dataframe
-  #  surgeon_level_counts_df = pd.concat([surgeon_level_counts_df, total_level_counts], ignore_index=True)
+        # Calculate the total count for each level across all surgeons
+      #  total_level_counts = surgeon_level_counts_df.groupby('Level')['Count'].sum().reset_index()
+      #  total_level_counts['Surgeon'] = 'Total'  # Assign 'Total' as the surgeon for the summary row
+        
+
+        # Append the total level counts to the dataframe
+      #  surgeon_level_counts_df = pd.concat([surgeon_level_counts_df, total_level_counts], ignore_index=True)
 
 
-    # Generate heatmap
-    heatmap = px.imshow(pd.crosstab(surgeon_level_counts_df['Surgeon'], surgeon_level_counts_df['Level'], 
-                                    values=surgeon_level_counts_df['Count'], aggfunc='sum'),
-                        labels=dict(x="Level", y="Surgeon"),
-                        x=vertebral_levels,
-                        y=surgeon_level_counts_df['Surgeon'].unique(),
-                        origin='lower',
-                        aspect='auto',
-                        color_continuous_scale='viridis')
+        # Generate heatmap
+        heatmap = px.imshow(pd.crosstab(surgeon_level_counts_df['Surgeon'], surgeon_level_counts_df['Level'], 
+                                        values=surgeon_level_counts_df['Count'], aggfunc='sum'),
+                            labels=dict(x="Level", y="Surgeon"),
+                            x=vertebral_levels,
+                            y=surgeon_level_counts_df['Surgeon'].unique(),
+                            origin='lower',
+                            aspect='auto',
+                            color_continuous_scale='viridis')
 
-    heatmap.update_xaxes(side="bottom", categoryorder='array', categoryarray=vertebral_levels)
-    heatmap.update_layout(xaxis_title="Level")  # Set axis title for the x-axis
+        heatmap.update_xaxes(side="bottom", categoryorder='array', categoryarray=vertebral_levels)
+        heatmap.update_layout(xaxis_title="Level")  # Set axis title for the x-axis
+
+
+    else:
+        # Calculate surgeon level counts directly for the single case
+        surgeon_level_counts = df_selection.apply(lambda row: vertebral_levels[vertebral_levels.index(row['UIV']):vertebral_levels.index(row['LIV']) + 1], axis=1).explode().value_counts()
+
+        # Create a dataframe for level counts for the single surgeon
+        surgeon_level_counts_df = pd.DataFrame({'Surgeon': ['Single Case'] * len(surgeon_level_counts), 'Level': surgeon_level_counts.index, 'Count': surgeon_level_counts.values})
+
+        # Convert the "Level" column to categorical with the desired order
+        surgeon_level_counts_df['Level'] = pd.Categorical(surgeon_level_counts_df['Level'], categories=vertebral_levels, ordered=True)
+
+        # Generate heatmap for the single case
+        heatmap = px.imshow(pd.crosstab(surgeon_level_counts_df['Surgeon'], surgeon_level_counts_df['Level'], 
+                                        values=surgeon_level_counts_df['Count'], aggfunc='sum'),
+                            labels=dict(x="Level", y="Surgeon"),
+                            x=vertebral_levels,
+                            y=surgeon_level_counts_df['Surgeon'].unique(),
+                            origin='lower',
+                            aspect='auto',
+                            color_continuous_scale='viridis')
+
+        heatmap.update_xaxes(side="bottom", categoryorder='array', categoryarray=vertebral_levels)
+        heatmap.update_layout(xaxis_title="Level", yaxis_title="Surgeon")  # Set axis titles for the x-axis and y-axis
 
     # Display heatmap
     st.subheader('Operation Frequency by Vertebra')
@@ -472,4 +499,4 @@ def app():
         st.plotly_chart(fig, use_container_width=True)
 
     # Generate the stacked histogram
-    generate_stacked_histogram(all_data_df)
+    generate_stacked_histogram(df_selection)
