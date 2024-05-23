@@ -387,6 +387,7 @@ def app():
 # MAKE THE PIE CHARTS
 
     # Generate PIE CHARTS for each surgeon
+
     st.subheader('Breakdown by Surgeon')
 
     # Allow user to select the category for the pie chart
@@ -396,25 +397,27 @@ def app():
     for surgeon in Surgeon:
         st.subheader(f'Pie Chart for Surgeon: {surgeon}')
         surgeon_data = df_selection[df_selection['Surgeon'] == surgeon]
-
-        # Calculate total time in OR for the surgeon
-        total_time_in_or = surgeon_data['Stage Duration (min)'].sum()
-
-        # Calculate the time spent in each stage as a percentage of total time in OR
-        stage_duration_by_surgeon = surgeon_data.groupby('Stage')['Stage Duration (min)'].sum()
-        stage_percentages = (stage_duration_by_surgeon / total_time_in_or) * 100
-
-        # Generate pie chart using the calculated percentages
-        pie_chart = px.pie(names=stage_percentages.index, values=stage_percentages.values,
-                            title=f'Breakdown of {category_for_pie_chart} for {surgeon}')
         
-        
+        if category_for_pie_chart == 'Stage':
+            # Calculate total time in OR for the surgeon
+            total_time_in_or = surgeon_data['Stage Duration (min)'].sum()
+
+            # Calculate the time spent in each stage as a percentage of total time in OR
+            stage_duration_by_surgeon = surgeon_data.groupby('Stage')['Stage Duration (min)'].sum()
+            stage_percentages = (stage_duration_by_surgeon / total_time_in_or) * 100
+
+            # Generate pie chart using the calculated percentages
+            pie_chart = px.pie(names=stage_percentages.index, values=stage_percentages.values,
+                                title=f'Breakdown of {category_for_pie_chart} for {surgeon}')
+        else:
+            pie_chart = px.pie(surgeon_data, names=category_for_pie_chart, title=f'Breakdown of {category_for_pie_chart} for {surgeon}')
+            
         st.plotly_chart(pie_chart)
 
 
 
 
-    # MAKE THE GANTT
+# MAKE THE GANTT
 
     def generate_stacked_histogram(df):
         # Initialize lists to store data for the x and y axes
