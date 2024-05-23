@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
+
 
 
 def app():
@@ -69,10 +71,10 @@ def app():
     # Remove the duplicate rows
     all_data_df = all_data_df.drop_duplicates(subset=['Case ID', 'Stage'], keep='last')
 
+    # Remove the "Done" rows
+    all_data_df = all_data_df.drop(all_data_df[all_data_df['Stage'] == 'Done'].index)
+
     
-
-
-
 
 
 
@@ -379,3 +381,86 @@ def app():
     # Display heatmap
     st.subheader('Operation Frequency by Vertebra')
     st.plotly_chart(heatmap, use_container_width=True)
+
+
+
+# MAKE THE PIE CHARTS
+
+    # Generate PIE CHARTS for each surgeon
+    st.subheader('Breakdown by Surgeon')
+
+    # Allow user to select the category for the pie chart
+    category_for_pie_chart = st.selectbox('Select Category for Pie Chart', options=['Stage', 'Fusion', 'TLIF', 'PSO', 'Laminectomy', 'ACDF', 'Fusion_Pelvis'])
+
+    # Generate pie charts for each surgeon based on the selected category
+    for surgeon in Surgeon:
+        st.subheader(f'Pie Chart for Surgeon: {surgeon}')
+        surgeon_data = df_selection[df_selection['Surgeon'] == surgeon]
+
+        # Calculate total time in OR for the surgeon
+        total_time_in_or = surgeon_data['Stage Duration (min)'].sum()
+
+        # Calculate the time spent in each stage as a percentage of total time in OR
+        stage_duration_by_surgeon = surgeon_data.groupby('Stage')['Stage Duration (min)'].sum()
+        stage_percentages = (stage_duration_by_surgeon / total_time_in_or) * 100
+
+        # Generate pie chart using the calculated percentages
+        pie_chart = px.pie(names=stage_percentages.index, values=stage_percentages.values,
+                            title=f'Breakdown of {category_for_pie_chart} for {surgeon}')
+        
+        
+        st.plotly_chart(pie_chart)
+
+
+
+
+    # MAKE THE GANTT
+
+    def generate_stacked_histogram(df):
+        # Initialize lists to store data for the x and y axes
+        case_ids = []
+        durations = []
+        stage_names = df['Stage'].unique()
+
+        # Iterate over each case and extract its stage durations
+        for case_id in df['Case ID'].unique():
+            # Filter the DataFrame for the current case
+            case_df = df[df['Case ID'] == case_id]
+            # Extract the durations of each stage for the current case
+            stage_durations = []
+            for stage_name in stage_names:
+                stage_duration = case_df[case_df['Stage'] == stage_name]['Stage Duration (min)'].sum()
+                stage_durations.append(stage_duration)
+            # Append the case ID to the list for the y-axis
+            case_ids.append(case_id)
+            # Append the list of durations to the list for the x-axis
+            durations.append(stage_durations)
+
+        # Create separate traces for each stage
+        traces = []
+        for i, stage_name in enumerate(stage_names):
+            trace = go.Bar(y=case_ids, x=[durations[j][i] for j in range(len(durations))], orientation='h', name=stage_name)
+            traces.append(trace)
+
+        # Define the layout for the graph
+        layout = go.Layout(
+            title="Stacked Histogram of Stage Durations per Case",
+            xaxis=dict(title="Duration (min)"),
+            yaxis=dict(title="Case ID"),
+            barmode='stack',
+            bargap=0.2,
+            bargroupgap=0.1
+        )
+
+##        print(case_ids)
+##        print(durations)
+##        print(traces)
+
+        # Create the figure
+        fig = go.Figure(data=traces, layout=layout)
+
+        # Show the figure
+        st.plotly_chart(fig, use_container_width=True)
+
+    # Generate the stacked histogram
+    generate_stacked_histogram(all_data_df)
