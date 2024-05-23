@@ -210,9 +210,15 @@ def app():
 
 
 
-  #5 Sort by other characteristics, such as title, stage, or surgeon
+  #5 Sort by other characteristics, such as Case, stage, or surgeon
     
+    Case = st.sidebar.multiselect('Select Case: ',
+                                  options=all_data_df['Case ID'].unique(),
+                                  )
+    if len(Case) == 0:
+        Case = list(all_data_df['Case'].unique())
         
+
 
     Stage = st.sidebar.multiselect('Select Stage: ',
                                   options=all_data_df['Stage'].unique(),
@@ -231,7 +237,7 @@ def app():
 #this part is not needed right now
     # Make dataframe of selected data
     df_selection = all_data_df.query(
-        f"`Stage` == {Stage} & `Surgeon` == {Surgeon}"
+        f"`Stage` == {Stage} & `Surgeon` == {Surgeon} & 'Case' == {Case}"
     )
 
 
