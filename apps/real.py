@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import random
+import matplotlib.pyplot as plt
 
 
 
@@ -58,6 +60,11 @@ def app():
 
     # Convert the time difference to minutes
     all_data_df['Stage Duration (min)'] = all_data_df['Stage Duration (min)'].dt.total_seconds() / 60
+    all_data_df['Stage Duration (min)'].fillna(0, inplace=True)
+    all_data_df['Stage Duration (min)'] = all_data_df['Stage Duration (min)'].astype(int)
+
+    duplicates_df = all_data_df.copy()
+
 
     # Drop the intermediate 'Next Time' column
     all_data_df.drop(columns=['Next Time'], inplace=True)
@@ -73,7 +80,7 @@ def app():
 
     # Remove the "Done" rows
     all_data_df = all_data_df.drop(all_data_df[all_data_df['Stage'] == 'Done'].index)
-
+    duplicates_df = duplicates_df.drop(duplicates_df[duplicates_df['Stage'] == 'Done'].index)
     
 
 
@@ -134,39 +141,53 @@ def app():
     # Apply filters based on user selection
     if include_posti:
         all_data_df = all_data_df[all_data_df['Fusion'] == 'Yes']
+        duplicates_df = duplicates_df[duplicates_df['Fusion'] == 'Yes']
+
 
     if exclude_posti:
         all_data_df = all_data_df[all_data_df['Fusion'] == 'No']
+        duplicates_df = duplicates_df[duplicates_df['Fusion'] == 'No']
+
 
     if include_tlif:
         all_data_df = all_data_df[all_data_df['TLIF'] == 'Yes']
+        duplicates_df = duplicates_df[duplicates_df['TLIF'] == 'Yes']
 
     if exclude_tlif:
         all_data_df = all_data_df[all_data_df['TLIF'] == 'No']
+        duplicates_df = duplicates_df[duplicates_df['TLIF'] == 'No']
 
     if include_pso:
         all_data_df = all_data_df[all_data_df['PSO'] == 'Yes']
+        duplicates_df = duplicates_df[duplicates_df['PSO'] == 'Yes']
 
     if exclude_pso:
         all_data_df = all_data_df[all_data_df['PSO'] == 'No']
+        duplicates_df = duplicates_df[duplicates_df['PSO'] == 'No']
         
     if include_lam:
         all_data_df = all_data_df[all_data_df['Laminectomy'] == 'Yes']
+        duplicates_df = duplicates_df[duplicates_df['Laminectomy'] == 'Yes']
 
     if exclude_lam:
         all_data_df = all_data_df[all_data_df['Laminectomy'] == 'No']
+        duplicates_df = duplicates_df[duplicates_df['Laminectomy'] == 'No']
 
     if include_acdf:
         all_data_df = all_data_df[all_data_df['ACDF'] == 'Yes']
+        duplicates_df = duplicates_df[duplicates_df['ACDF'] == 'Yes']
 
     if exclude_acdf:
         all_data_df = all_data_df[all_data_df['ACDF'] == 'No']
+        duplicates_df = duplicates_df[duplicates_df['ACDF'] == 'No']
 
     if include_pelvicfusion:
         all_data_df = all_data_df[all_data_df['Fusion_Pelvis'] == 'Yes']
+        duplicates_df = duplicates_df[duplicates_df['Fusion_Pelvis'] == 'Yes']
 
     if exclude_pelvicfusion:
         all_data_df = all_data_df[all_data_df['Fusion_Pelvis'] == 'Yes']
+        duplicates_df = duplicates_df[duplicates_df['Fusion_Pelvis'] == 'Yes']
 
 
   #3 MAKE A SLIDER FOR VERTEBRAL LEVELS
@@ -192,7 +213,8 @@ def app():
     all_data_df = all_data_df[(all_data_df['UIV'].apply(vertebral_levels.index) >= selected_positions[0]) & 
                 (all_data_df['LIV'].apply(vertebral_levels.index) <= selected_positions[1])]
 
-
+    duplicates_df = duplicates_df[(duplicates_df['UIV'].apply(vertebral_levels.index) >= selected_positions[0]) & 
+                (duplicates_df['LIV'].apply(vertebral_levels.index) <= selected_positions[1])]
         
 
   #4  Make a Slider  for # Levels
@@ -207,6 +229,7 @@ def app():
 
             # Apply filters based on selected levels
             all_data_df = all_data_df[(all_data_df['Levels Exposed'] >= selected_levels[0]) & (all_data_df['Levels Exposed'] <= selected_levels[1])]
+            duplicates_df = duplicates_df[(duplicates_df['Levels Exposed'] >= selected_levels[0]) & (duplicates_df['Levels Exposed'] <= selected_levels[1])]
 
 
 
@@ -234,7 +257,6 @@ def app():
         Surgeon = list(all_data_df['Surgeon'].unique())
         
 
-#this part is not needed right now
     # Make dataframe of selected data
         df_selection = all_data_df.query(
         f"`Stage` in {Stage} and "
@@ -242,6 +264,16 @@ def app():
         f"`Case ID` in {Case}"
     )
 
+
+#this part is not needed right now
+    # Make dataframe of selected data
+        duplicates_df = duplicates_df.query(
+        f"`Stage` in {Stage} and "
+        f"`Surgeon` in {Surgeon} and "
+        f"`Case ID` in {Case}"
+    )
+
+        
 
     # Finding levels/week
     unique_cases = df_selection.drop_duplicates(subset=['Case ID'])
@@ -450,7 +482,59 @@ def app():
 
 
 
-# MAKE THE GANTT
+### MAKE THE GANTT2
+##
+##    def generate_stacked_histogram(df):
+##        # Initialize lists to store data for the x and y axes
+##        case_ids = []
+##        durations = []
+##        stage_names = df['Stage'].unique()
+##
+##        # Iterate over each case and extract its stage durations
+##        for case_id in df['Case ID'].unique():
+##            # Filter the DataFrame for the current case
+##            case_df = df[df['Case ID'] == case_id]
+##            # Extract the durations of each stage for the current case
+##            stage_durations = []
+##            for stage_name in stage_names:
+##                stage_duration = case_df[case_df['Stage'] == stage_name]['Stage Duration (min)'].sum()
+##                stage_durations.append(stage_duration)
+##            # Append the case ID to the list for the y-axis
+##            case_ids.append(case_id)
+##            # Append the list of durations to the list for the x-axis
+##            durations.append(stage_durations)
+##
+##        # Create separate traces for each stage
+##        traces = []
+##        for i, stage_name in enumerate(stage_names):
+##            trace = go.Bar(y=case_ids, x=[durations[j][i] for j in range(len(durations))], orientation='h', name=stage_name)
+##            traces.append(trace)
+##
+##        # Define the layout for the graph
+##        layout = go.Layout(
+##            title="Stacked Histogram of Stage Durations per Case",
+##            xaxis=dict(title="Duration (min)"),
+##            yaxis=dict(title="Case ID"),
+##            barmode='stack',
+##            bargap=0.2,
+##            bargroupgap=0.1
+##        )
+##
+####        print(case_ids)
+####        print(durations)
+####        print(traces)
+##
+##        # Create the figure
+##        fig = go.Figure(data=traces, layout=layout)
+##
+##        # Show the figure
+##        st.plotly_chart(fig, use_container_width=True)
+##
+##    # Generate the stacked histogram
+##    generate_stacked_histogram(df_selection)
+
+
+# MAKE THE GANTT2
 
     def generate_stacked_histogram(df):
         # Initialize lists to store data for the x and y axes
@@ -500,3 +584,46 @@ def app():
 
     # Generate the stacked histogram
     generate_stacked_histogram(df_selection)
+
+
+# MAKE THE GANTT2
+
+
+
+    def assign_random_colors(df):
+        # Get unique stage names
+        unique_stages = df['Stage'].unique()
+        # Generate a random color for each stage
+        stage_colors = {stage: f'rgb({random.randint(0, 255)}, {random.randint(0, 255)}, {random.randint(0, 255)})' for stage in unique_stages}
+        # Assign colors to each stage in the DataFrame
+        df['Color'] = df['Stage'].map(stage_colors)
+        return df, stage_colors
+
+    def generat_stacked_histogram(df):
+        # Assign random colors to each stage
+        df_with_colors, stage_colors = assign_random_colors(df)
+
+        # Sort DataFrame by Case ID and Stage Start Time
+        df_sorted = df_with_colors.sort_values(by=['Case ID', 'Stage Start Time'])
+
+        # Initialize lists to store data for the x and y axes
+        x_data = df_sorted['Case ID']
+        y_data = df_sorted['Stage Duration (min)']
+        colors = df_sorted['Stage'].map(stage_colors)
+
+        # Create the stacked histogram
+        fig = go.Figure(go.Bar(
+            x=x_data,
+            y=y_data,
+            marker=dict(color=colors),
+            orientation='v',
+            hoverinfo='text',
+            text=[f"<b>Case:</b> {case}<br><b>Stage:</b> {stage}<br><b>Length:</b> {length} min" for case, stage, length in zip(df_sorted['Case ID'], df_sorted['Stage'], df_sorted['Stage Duration (min)'])],
+            textfont=dict(color="rgba(0, 0, 0, 0)")  # Making text color transparent
+        ))
+
+        # Show both the graph and the key legend
+        st.plotly_chart(fig, use_container_width=True)
+
+    # Generate the stacked histogram
+    generat_stacked_histogram(duplicates_df)
