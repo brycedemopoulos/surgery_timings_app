@@ -622,6 +622,12 @@ def app():
             textfont=dict(color="rgba(0, 0, 0, 0)")  # Making text color transparent
         ))
 
+        # Update layout with axes titles
+        fig.update_layout(
+            title="Stacked Histogram (Ordered with Duplicates)",
+            xaxis=dict(title="Case ID"),
+            yaxis=dict(title="Duration (min)")
+        )
         # Show both the graph and the key legend
         st.plotly_chart(fig, use_container_width=True)
 
