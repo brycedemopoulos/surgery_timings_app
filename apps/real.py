@@ -590,21 +590,18 @@ def app():
 
 
 
-    def assign_random_colors(df):
-        # Get unique stage names
-        unique_stages = df['Stage'].unique()
-        # Generate a random color for each stage
-        stage_colors = {stage: f'rgb({random.randint(0, 255)}, {random.randint(0, 255)}, {random.randint(0, 255)})' for stage in unique_stages}
-        # Assign colors to each stage in the DataFrame
-        df['Color'] = df['Stage'].map(stage_colors)
-        return df, stage_colors
-
-    def generat_stacked_histogram(df):
-        # Assign random colors to each stage
-        df_with_colors, stage_colors = assign_random_colors(df)
-
+    def generate_stacked_histogram(df):
         # Sort DataFrame by Case ID and Stage Start Time
-        df_sorted = df_with_colors.sort_values(by=['Case ID', 'Stage Start Time'])
+        df_sorted = df.sort_values(by=['Case ID', 'Stage Start Time'])
+
+        # Get unique stage names
+        unique_stages = df_sorted['Stage'].unique()
+
+        # Define colors for each stage type
+        colors = px.colors.qualitative.Plotly[:len(unique_stages)]
+
+        # Create a dictionary to map stage names to colors
+        stage_colors = dict(zip(unique_stages, colors))
 
         # Initialize lists to store data for the x and y axes
         x_data = df_sorted['Case ID']
@@ -618,7 +615,8 @@ def app():
             marker=dict(color=colors),
             orientation='v',
             hoverinfo='text',
-            text=[f"<b>Case:</b> {case}<br><b>Stage:</b> {stage}<br><b>Length:</b> {length} min" for case, stage, length in zip(df_sorted['Case ID'], df_sorted['Stage'], df_sorted['Stage Duration (min)'])],
+            text=[f"<b>Case:</b> {case}<br><b>Stage:</b> {stage}<br><b>Length:</b> {length} min" 
+                  for case, stage, length in zip(df_sorted['Case ID'], df_sorted['Stage'], df_sorted['Stage Duration (min)'])],
             textfont=dict(color="rgba(0, 0, 0, 0)")  # Making text color transparent
         ))
 
@@ -632,4 +630,4 @@ def app():
         st.plotly_chart(fig, use_container_width=True)
 
     # Generate the stacked histogram
-    generat_stacked_histogram(duplicates_df)
+    generate_stacked_histogram(duplicates_df)
