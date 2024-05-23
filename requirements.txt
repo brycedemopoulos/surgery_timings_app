@@ -3,5 +3,3 @@ pandas
 scikit-learn
 plotly
 openpyxl
-random
-matplotlib
